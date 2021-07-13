@@ -14,8 +14,9 @@ const newClient = (subdomain = 'api') => {
 };
 
 const handleRequest = async (requestTweet) => {
+
   //check for false positive
-  if (!requestTweet.entities.user_mentions.find((mention => mention.screen_name == process.env.TWITTER_BOT_SCREEN_NAME))) {
+  if (!requestTweet.entities.user_mentions.find((mention => mention.screen_name == process.env.TWITTER_BOT_SCREEN_NAME && mention.id_str == process.env.TWITTER_BOT_USER_ID_STR))) {
     console.log(`caught false positive in "${requestTweet.text}"`);
     return false;
   }
@@ -71,7 +72,7 @@ const handleRequest = async (requestTweet) => {
 
   //post the tweet
   await client.post("statuses/update", {
-    status: `@${requestTweet.user.screen_name}`,
+    status: '',
     in_reply_to_status_id: requestTweet.id_str,
     media_ids: upload.media_id_string
   });

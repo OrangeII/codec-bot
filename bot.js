@@ -14,6 +14,7 @@ const newClient = (subdomain = 'api') => {
 };
 
 const handleRequest = async (requestTweet) => {
+  console.log(`recieved request: ${process.env.TWITTER_TWEET_URL}${requestTweet.id_str}`);
 
   //check for false positive
   if (!requestTweet.entities.user_mentions.find((mention => mention.screen_name == process.env.TWITTER_BOT_SCREEN_NAME && mention.id_str == process.env.TWITTER_BOT_USER_ID_STR))) {
@@ -30,7 +31,8 @@ const handleRequest = async (requestTweet) => {
 
   //retrieve data for the target tweet
   const targetTweet = await client.get('statuses/show', {
-    id: targetTweetId
+    id: targetTweetId,
+    tweet_mode: 'extended'
   })
     .catch(err => console.log(err));
   if (!targetTweet) {
@@ -39,7 +41,7 @@ const handleRequest = async (requestTweet) => {
   }
 
   //extract profile picture and text
-  const text = targetTweet.text;
+  const text = targetTweet.full_text;
   const image = await fetch(targetTweet.user.profile_image_url)
     .then(response => { return response.buffer() })
     .catch(err => console.log(err));
@@ -71,21 +73,29 @@ const handleRequest = async (requestTweet) => {
   }
 
   //post the tweet
-  await client.post("statuses/update", {
+  const responseTweet = await client.post("statuses/update", {
     status: '',
     in_reply_to_status_id: requestTweet.id_str,
     media_ids: upload.media_id_string
-  });
+  })
+    .catch(err => { console.log(err) });
+  if (!responseTweet) {
+    console.log(`failed to post reply tweet`);
+    return false;
+  }
+
+  console.log(`posted reply: ${process.env.TWITTER_TWEET_URL}${responseTweet.id_str}`);
+  return true;
 }
 
 const client = newClient();
-
 const stream = client.stream('statuses/filter', {
-  track: process.env.TWITTER_TRACK_FILTER
+  track: process.env.TWITTER_TRACK_FILTER,
 })
   .on('start', response => console.log('start'))
   .on('data', tweet => {
-    handleRequest(tweet);
+    handleRequest(tweet)
+      .catch(err => console.log(err));
   })
   .on('ping', () => console.log('ping'))
   .on('error', error => console.log('error', error))

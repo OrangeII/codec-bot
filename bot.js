@@ -39,6 +39,11 @@ const handleRequest = async (requestTweet) => {
     console.log(`failed to retrieve terget tweet with id ${targetTweetId}`);
     return false;
   }
+  if (targetTweet.user.id_str == process.env.TWITTER_BOT_USER_ID_STR) {
+    console.log('target tweet is a bot tweet');
+    return false;
+  }
+
 
   //extract profile picture and text
   const text = targetTweet.full_text;
@@ -74,7 +79,7 @@ const handleRequest = async (requestTweet) => {
 
   //post the tweet
   const responseTweet = await client.post("statuses/update", {
-    status: '',
+    status: `@${requestTweet.user.screen_name}`,
     in_reply_to_status_id: requestTweet.id_str,
     media_ids: upload.media_id_string
   })
